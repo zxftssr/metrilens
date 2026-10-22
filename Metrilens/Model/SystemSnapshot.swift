@@ -52,7 +52,8 @@ struct DiskCapacityMetric: Equatable {
     let availableBytes: UInt64
 
     var usedBytes: UInt64 {
-        totalBytes >= freeBytes ? totalBytes - freeBytes : 0
+        // Reclaimable space is available, so it must not also count as used.
+        totalBytes >= availableBytes ? totalBytes - availableBytes : 0
     }
 
     var usedPercent: Double {

@@ -13,10 +13,10 @@ final class DiskCapacityProvider: DiskCapacityProviding {
     typealias CapacityReader =
         () -> Result<DiskCapacityMetric, MetricFailure>
 
-    static let startupVolumeURL = URL(
-        fileURLWithPath: "/",
-        isDirectory: true
-    ).standardizedFileURL
+    // URL resource values are cached; each sample needs a fresh URL.
+    static var startupVolumeURL: URL {
+        URL(fileURLWithPath: "/", isDirectory: true).standardizedFileURL
+    }
 
     private let stateMachine = MetricStateMachine<DiskCapacityMetric>()
     private let capacityReader: CapacityReader
@@ -75,8 +75,9 @@ final class DiskCapacityProvider: DiskCapacityProviding {
     private static func readCapacity()
         -> Result<DiskCapacityMetric, MetricFailure> {
         do {
+            let volumeURL = startupVolumeURL
             let attributes = try FileManager.default.attributesOfFileSystem(
-                forPath: startupVolumeURL.path
+                forPath: volumeURL.path
             )
             guard let total = (attributes[.systemSize] as? NSNumber)?.uint64Value,
                   let free = (attributes[.systemFreeSize] as? NSNumber)?.uint64Value else {
@@ -84,7 +85,7 @@ final class DiskCapacityProvider: DiskCapacityProviding {
             }
             let available: UInt64
             if #available(macOS 11.0, *) {
-                let values = try startupVolumeURL
+                let values = try volumeURL
                     .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
                 available = values.volumeAvailableCapacityForImportantUsage
                     .flatMap { $0 >= 0 ? UInt64($0) : nil } ?? free

@@ -656,6 +656,46 @@ final class ProductQualityTests: XCTestCase {
         XCTAssertTrue(controller.batteryHealthRowHiddenForTesting())
     }
 
+    func testDiskPresentationUsesComplementaryCapacityAndRoundedPercentages() {
+        let controller = PopoverController(
+            preferences: PreferencesSnapshot(
+                display: DisplaySettings(language: .simplifiedChinese),
+                sampling: SamplingSettings(showsSparkline: false)
+            )
+        )
+        let stamp = SampleStamp(wallTime: Date(), uptime: 10)
+        var snapshot = SystemSnapshot.initial()
+        for (available, expectedUsed, expectedFree) in [
+            (9_000_000_000, "91%", "9%"),
+            (6_500_000_000, "93%", "7%"),
+            (0, "100%", "0%"),
+            (100_000_000_000, "0%", "100%")
+        ] {
+            let metric = DiskCapacityMetric(
+                totalBytes: 100_000_000_000,
+                freeBytes: 1_000_000_000,
+                availableBytes: UInt64(available)
+            )
+            snapshot.disk = .available(metric, stamp)
+
+            controller.update(snapshot: snapshot)
+
+            let presentation = controller.diskPresentationForTesting()
+            XCTAssertTrue(presentation.usedText.hasSuffix("· \(expectedUsed)"), presentation.usedText)
+            XCTAssertTrue(presentation.freeText.hasSuffix("· \(expectedFree)"), presentation.freeText)
+            if available == 9_000_000_000 {
+                XCTAssertTrue(
+                    presentation.usedText.filter { !$0.isWhitespace }.hasPrefix("91GB"),
+                    presentation.usedText
+                )
+                XCTAssertTrue(
+                    presentation.freeText.filter { !$0.isWhitespace }.hasPrefix("9GB"),
+                    presentation.freeText
+                )
+            }
+        }
+    }
+
     func testDiskPlaceholderClearsPreviousSeverityColor() {
         let stamp = SampleStamp(wallTime: Date(), uptime: 10)
         let controller = PopoverController(

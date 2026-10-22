@@ -579,10 +579,11 @@ final class PopoverController: NSObject, NSPopoverDelegate {
             diskFreeValue.textColor = PopoverMetricFormatter.metricTextColor(state)
             return
         }
+        let availablePercent = metric.freePercent.rounded()
         diskUsageValue.stringValue = "\(PopoverMetricFormatter.byteText(metric.usedBytes))  "
-            + String(format: "· %.0f%%", metric.usedPercent)
+            + String(format: "· %.0f%%", 100 - availablePercent)
         diskFreeValue.stringValue = "\(PopoverMetricFormatter.byteText(metric.availableBytes))  "
-            + String(format: "· %.0f%%", metric.freePercent)
+            + String(format: "· %.0f%%", availablePercent)
         setFailureReason(nil, on: diskUsageValue)
         setFailureReason(nil, on: diskFreeValue)
         let severity: MetricVisualSeverity =

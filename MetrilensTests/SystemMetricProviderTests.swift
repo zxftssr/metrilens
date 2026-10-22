@@ -215,6 +215,19 @@ final class SystemMetricProviderTests: XCTestCase {
         XCTAssertEqual(DiskCapacityProvider.startupVolumeURL.path, "/")
     }
 
+    func testDiskUsageExcludesSpaceAvailableThroughReclamation() {
+        let metric = DiskCapacityMetric(
+            totalBytes: 100,
+            freeBytes: 1,
+            availableBytes: 9
+        )
+
+        XCTAssertEqual(metric.usedBytes, 91)
+        XCTAssertEqual(metric.usedBytes + metric.availableBytes, metric.totalBytes)
+        XCTAssertEqual(metric.usedPercent, 91, accuracy: 0.001)
+        XCTAssertEqual(metric.usedPercent + metric.freePercent, 100, accuracy: 0.001)
+    }
+
     func testHeatDiagnosisExplainsSustainedCPUWithoutScanningProcesses() {
         let stamp = SampleStamp(wallTime: Date(), uptime: 10)
         var snapshot = SystemSnapshot.initial()
